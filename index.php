@@ -39,7 +39,7 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
             $server = $this->decrypt($server);
 
             if (!$this->check_server_identity($server)) {
-                throw new Exception("Ce serveur n'est pas autorisé", 500);
+                throw new Exception("Ce serveur n'est pas autorisé^", 500);
             }
 
             $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
