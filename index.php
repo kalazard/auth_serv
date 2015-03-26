@@ -39,7 +39,7 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
             $server = $this->decrypt($server);
 
             if (!$this->check_server_identity($server)) {
-                throw new Exception("Ce serveur n'est pas autorisé^", 500);
+                throw new Exception("Ce serveur n'est pas autorisé", 500);
             }
 
             $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
@@ -71,14 +71,29 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
         }
     }
 
-    function createUser($username, $password) {
-        $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
-        $reponse = $bdd->prepare("INSERT INTO utilisateur (email,mdp,salage) VALUES(:email,:mdp,:salage)");
-        $reponse->bindValue(':email', $username, PDO::PARAM_STR);
-        $salage = md5(uniqid('', true));
-        $reponse->bindValue(':mdp', hash('sha512', '#' . $password . "#" . $salage), PDO::PARAM_STR);
-        $reponse->bindValue(':salage', $salage, PDO::PARAM_STR);
-        $reponse->execute();
+    function createUser($id, $username, $password, $server) {
+        try {
+            //Si le client ne peut pas accéder à ce serveur
+            $id = $this->decrypt($id);
+            $username = $this->decrypt($username);
+            $password = $this->decrypt($password);
+            $server = $this->decrypt($server);
+
+            if (!$this->check_server_identity($server)) {
+                throw new Exception("Ce serveur n'est pas autorisé", 500);
+            }
+            $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
+            $reponse = $bdd->prepare("INSERT INTO utilisateur (id,email,mdp,salage) VALUES(:id,:email,:mdp,:salage)");
+            $reponse->bindValue(':id', $id, PDO::PARAM_INT);
+            $reponse->bindValue(':email', $username, PDO::PARAM_STR);
+            $salage = md5(uniqid('', true));
+            $reponse->bindValue(':mdp', hash('sha512', '#' . $password . "#" . $salage), PDO::PARAM_STR);
+            $reponse->bindValue(':salage', $salage, PDO::PARAM_STR);
+            $reponse->execute();
+            return array("error" => false);
+        } catch (Exception $exc) {
+            return array("error" => true, "message" => $exc->getMessage());
+        }
     }
 
     //Fonction qui servira a crypter les données
