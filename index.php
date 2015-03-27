@@ -67,7 +67,7 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
                 return array("connected" => false, "message" => "Le nom d'utilisateur est incorrect");
             }
         } catch (Exception $exc) {
-            return array("connected" => false, "message" => $exc->getMessage());
+            return array("connected" => false, "message" => "erreur du serveur".$exc->getMessage());
         }
     }
 
