@@ -58,8 +58,12 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
                 $reponse->bindValue(':mdp', $password_to_check, PDO::PARAM_STR);
                 $reponse->execute();
                 if ($donnes = $reponse->fetch()) {
-                    //L'utilisateur est connecté, on renvoie son id
-                    return array("connected" => true, "userid" => $this->encrypt($donnes["id"]));
+                    if ($donnes["actif"] == 1) {
+                        //L'utilisateur est connecté, on renvoie son id
+                        return array("connected" => true, "userid" => $this->encrypt($donnes["id"]));
+                    } else {
+                        return array("connected" => false, "message" => "Le compte est inactif");
+                    }
                 } else {
                     return array("connected" => false, "message" => "Le mot de passe est incorrect");
                 }
@@ -67,14 +71,14 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
                 return array("connected" => false, "message" => "Le nom d'utilisateur est incorrect");
             }
         } catch (Exception $exc) {
-            return array("connected" => false, "message" => "erreur du serveur".$exc->getMessage());
+            return array("connected" => false, "message" => "erreur du serveur" . $exc->getMessage());
         }
     }
 
-    function createUser($id, $username, $password, $server) {
+    function createUser($username, $password, $server) {
         try {
             //Si le client ne peut pas accéder à ce serveur
-            $id = $this->decrypt($id);
+           
             $username = $this->decrypt($username);
             $password = $this->decrypt($password);
             $server = $this->decrypt($server);
@@ -83,13 +87,70 @@ vydK9MKH22c3HFLQouUCQEF7UNyktq3T0B52sz9Je4mpli4GgplIcHC90+zE6+sq
                 throw new Exception("Ce serveur n'est pas autorisé", 500);
             }
             $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
-            $reponse = $bdd->prepare("INSERT INTO utilisateur (id,email,mdp,salage) VALUES(:id,:email,:mdp,:salage)");
-            $reponse->bindValue(':id', $id, PDO::PARAM_INT);
+            $reponse = $bdd->prepare("INSERT INTO utilisateur (email,mdp,salage, actif) VALUES(:email,:mdp,:salage,1)");
+            
             $reponse->bindValue(':email', $username, PDO::PARAM_STR);
             $salage = md5(uniqid('', true));
             $reponse->bindValue(':mdp', hash('sha512', '#' . $password . "#" . $salage), PDO::PARAM_STR);
             $reponse->bindValue(':salage', $salage, PDO::PARAM_STR);
             $reponse->execute();
+            return array("error" => false, 'id_user' => $this->encrypt($bdd->lastInsertId()));
+        } catch (Exception $exc) {
+            return array("error" => true, "message" => $exc->getMessage());
+        }
+    }
+
+    function updateUser($id, $username, $password, $actif, $server) {
+        
+    }
+
+    function updateUserActivation($id, $activation, $server) {
+        try {
+            //Si le client ne peut pas accéder à ce serveur
+           
+            $id = $this->decrypt($id);
+            $activation = $this->decrypt($activation);
+            $server = $this->decrypt($server);
+
+            if (!$this->check_server_identity($server)) {
+                throw new Exception("Ce serveur n'est pas autorisé", 500);
+            }
+            $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
+            $reponse = $bdd->prepare("UPDATE utilisateur SET actif=:activation WHERE id=:id");
+            
+            $reponse->bindValue(':activation', $activation, PDO::PARAM_INT);            
+            $reponse->bindValue(':id', $id, PDO::PARAM_INT);
+            
+            $reponse->execute();
+            return array("error" => false);
+        } catch (Exception $exc) {
+            return array("error" => true, "message" => $exc->getMessage());
+        }
+    }
+
+    function getUserActivation($id, $server) {
+        try {
+            //Si le client ne peut pas accéder à ce serveur
+            $id = $this->decrypt($id);
+            $server = $this->decrypt($server);
+
+            if (!$this->check_server_identity($server)) {
+                throw new Exception("Ce serveur n'est pas autorisé", 500);
+            }
+            $bdd = new PDO('mysql:host=130.79.214.167;dbname=auth_serv;charset=utf8', 'grp6_access', 'apz37_tA2x');
+            $reponse = $bdd->prepare("SELECT actif from utilisateur where id=:id");
+            $reponse->bindValue(':id', $id, PDO::PARAM_INT);
+            $reponse->execute();
+            if ($donnes = $reponse->fetch()) {
+                    if ($donnes["actif"] == 1) {
+                        return array("error" => false, 'actif' => '1');
+                    }
+                    else
+                    {
+                        return array("error" => false, 'actif' => '0');
+                    }
+            }
+  
             return array("error" => false);
         } catch (Exception $exc) {
             return array("error" => true, "message" => $exc->getMessage());
